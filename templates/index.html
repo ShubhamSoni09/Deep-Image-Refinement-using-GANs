@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Deep Image Refinement using GANs</title>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a1a2e;
+            margin-bottom: 30px;
+            font-size: 3em;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .intro-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 40px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+        }
+
+        .intro-section h2 {
+            color: #1a1a2e;
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .intro-section p {
+            color: #495057;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .intro-section strong {
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+
+        .intro-section em {
+            color: #667eea;
+            font-style: italic;
+            font-weight: 500;
+        }
+
+
+
+        .upload-section {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 18px 35px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .preview-section {
+            text-align: center;
+            margin: 40px 0;
+            padding: 30px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 20px;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .preview-section.hidden {
+            display: none;
+        }
+
+        .preview-section h3 {
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .preview-image {
+            max-width: 350px;
+            max-height: 350px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin: 20px 0;
+            transition: transform 0.3s ease;
+        }
+
+        .preview-image:hover {
+            transform: scale(1.05);
+        }
+
+        .file-info {
+            color: #6c757d;
+            font-size: 16px;
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .process-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 18px 40px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .process-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+        }
+
+        .process-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .process-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid #dee2e6;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .result-card h3 {
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .result-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+
+        .result-image:hover {
+            transform: scale(1.02);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 20px;
+            color: #6c757d;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            margin: 20px 0;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .error {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            color: #c62828;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid #ffcdd2;
+            box-shadow: 0 5px 15px rgba(198, 40, 40, 0.1);
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid #c3e6cb;
+            box-shadow: 0 5px 15px rgba(21, 87, 36, 0.1);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .results {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .preview-image {
+                max-width: 250px;
+                max-height: 250px;
+            }
+
+            .upload-btn, .process-btn {
+                padding: 15px 30px;
+                font-size: 16px;
+            }
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Deep Image Refinement using GANs</h1>
+        
+        <div class="intro-section">
+            <h2>🚀 How It Works</h2>
+            <p>
+                This application uses <strong>Generative Adversarial Networks (GANs)</strong> to enhance image quality and resolution. 
+                The AI models learn to generate realistic details that weren't present in the original low-resolution image.
+            </p>
+            <p>
+                <strong>Why the results are amazing:</strong> Even though the enhanced images may not perfectly match the original, 
+                they demonstrate the AI's ability to intelligently <em>invent</em> realistic details, textures, and patterns 
+                that make the image appear sharper and more detailed than the source material.
+            </p>
+            
+        </div>
+        
+        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+            <div class="upload-section">
+                <input type="file" name="image" id="fileInput" class="file-input" accept="image/*" required>
+                <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    📁 Choose Image
+                </button>
+            </div>
+
+            <!-- Preview Section -->
+            <div id="previewSection" class="preview-section hidden">
+                <h3>📸 Selected Image Preview</h3>
+                <div id="fileInfo" class="file-info"></div>
+                <img id="previewImage" class="preview-image" alt="Preview">
+                <br>
+                <button type="submit" class="process-btn" id="processBtn">
+                    🚀 Process Image with GANs
+                </button>
+            </div>
+        </form>
+
+        {% if original %}
+        <div class="results">
+            <div class="result-card">
+                <h3>📸 Original Image</h3>
+                <img src="{{ original }}" alt="Original" class="result-image">
+            </div>
+            <div class="result-card">
+                <h3>✨ SRGAN Enhanced</h3>
+                <img src="{{ gan1 }}" alt="SRGAN Result" class="result-image">
+            </div>
+            <div class="result-card">
+                <h3>🌟 ESRGAN Enhanced</h3>
+                <img src="{{ gan2 }}" alt="ESRGAN Result" class="result-image">
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p><strong>🔄 Processing your image with GANs...</strong></p>
+            <p>This may take a few moments depending on image size</p>
+            <p style="font-size: 14px; margin-top: 10px; opacity: 0.7;">
+                ✨ SRGAN and 🌟 ESRGAN models are working their magic!
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Handle file selection and preview
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Clear previous results
+                clearResults();
+                
+                // Show file info
+                const fileInfo = document.getElementById('fileInfo');
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                fileInfo.innerHTML = `
+                    <strong>File:</strong> ${file.name}<br>
+                    <strong>Size:</strong> ${fileSize} MB<br>
+                    <strong>Type:</strong> ${file.type}
+                `;
+
+                // Create preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewImage = document.getElementById('previewImage');
+                    previewImage.src = e.target.result;
+                    document.getElementById('previewSection').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Function to clear previous results
+        function clearResults() {
+            const results = document.querySelector('.results');
+            if (results) {
+                results.remove();
+            }
+            
+            // Hide loading if it's showing
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) {
+                e.preventDefault();
+                showMessage('Please select an image first.', 'error');
+                return;
+            }
+            
+            // Show loading with smooth transition
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            loading.style.opacity = '0';
+            setTimeout(() => {
+                loading.style.opacity = '1';
+            }, 10);
+        });
+
+        // Function to show messages
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error' : 'success-message';
+            messageDiv.textContent = message;
+            messageDiv.style.marginTop = '20px';
+            
+            document.querySelector('.container').appendChild(messageDiv);
+            
+            // Remove message after 5 seconds
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // Add smooth scrolling to results
+        function scrollToResults() {
+            const results = document.querySelector('.results');
+            if (results) {
+                results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    </script>
+</body>
+</html> 
