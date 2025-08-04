@@ -68,7 +68,7 @@ class BlockRRDB(nn.Module):
         return self.blockrrdb(x) * self.residual_beta + x
 
 class Generator(nn.Module):
-    def __init__(self, in_channels=3, num_channels=64, num_blocks=23):
+    def __init__(self, in_channels=3, num_channels=64, num_blocks=1):  # Reduced from 23 to 1
         super().__init__()
         self.initial_layer = nn.Conv2d(
             in_channels=in_channels,

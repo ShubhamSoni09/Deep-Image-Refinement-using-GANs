@@ -3,4 +3,5 @@ Pillow
 torch
 torchvision
 Werkzeug
-gunicorn 
+gunicorn
+psutil 

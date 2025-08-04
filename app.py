@@ -5,6 +5,8 @@ from srgan import process_with_srgan
 from esrgan import process_with_esrgan
 from PIL import Image
 import uuid
+import gc
+import psutil
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -17,6 +19,24 @@ os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def resize_image_if_needed(image_path, max_size=512):
+    """Resize image if it's too large to prevent memory issues"""
+    with Image.open(image_path) as img:
+        width, height = img.size
+        if width > max_size or height > max_size:
+            # Calculate new dimensions maintaining aspect ratio
+            if width > height:
+                new_width = max_size
+                new_height = int(height * max_size / width)
+            else:
+                new_height = max_size
+                new_width = int(width * max_size / height)
+            
+            img = img.resize((new_width, new_height), Image.LANCZOS)
+            img.save(image_path)
+            print(f"Resized image from {width}x{height} to {new_width}x{new_height}")
+        return image_path
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -44,14 +64,21 @@ def index():
                 file.save(filepath)
                 print("File saved to:", filepath)
 
+                # Resize image if too large to prevent memory issues
+                filepath = resize_image_if_needed(filepath, max_size=256)  # Reduced to 256px
+
                 # Process with GANs
                 gan1_path = os.path.join(app.config['OUTPUT_FOLDER'], 'gan1_' + filename)
                 gan2_path = os.path.join(app.config['OUTPUT_FOLDER'], 'gan2_' + filename)
 
                 print("Processing with SRGAN...")
                 process_with_srgan(filepath, gan1_path)
+                gc.collect()  # Force garbage collection
+                
                 print("Processing with ESRGAN...")
                 process_with_esrgan(filepath, gan2_path)
+                gc.collect()  # Force garbage collection
+                
                 print("Processing complete!")
 
                 return render_template('index.html',
