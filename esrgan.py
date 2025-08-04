@@ -225,16 +225,30 @@ def downsample_image(hr_image, scale_factor=4):
     return lr_image
 
 def process_with_esrgan(filepath, gan2_path):
-    low_res = downsample_image(filepath, 4)
-    transform = transforms.Compose([
-        transforms.ToTensor(),  # Convert to tensor with range [0, 1]
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize
-    ])
-    low_res = transform(low_res).unsqueeze(0).to(device)
+    try:
+        # Clear memory before processing
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        
+        low_res = downsample_image(filepath, 4)
+        transform = transforms.Compose([
+            transforms.ToTensor(),  # Convert to tensor with range [0, 1]
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize
+        ])
+        low_res = transform(low_res).unsqueeze(0).to(device)
 
-    with torch.no_grad():
-        fake_high_res = generator(low_res)
-    
-    fake_high_res = denormalize(fake_high_res)[0].permute(1, 2, 0).cpu().numpy()
-    fake_high_res = Image.fromarray((fake_high_res * 255).astype('uint8'))
-    fake_high_res.save(gan2_path)
+        with torch.no_grad():
+            fake_high_res = generator(low_res)
+        
+        fake_high_res = denormalize(fake_high_res)[0].permute(1, 2, 0).cpu().numpy()
+        fake_high_res = Image.fromarray((fake_high_res * 255).astype('uint8'))
+        fake_high_res.save(gan2_path)
+        
+        # Clear memory after processing
+        del low_res, fake_high_res
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        
+    except Exception as e:
+        print(f"ESRGAN processing error: {e}")
+        # Save a copy of original image if processing fails
+        original = Image.open(filepath)
+        original.save(gan2_path)

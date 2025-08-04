@@ -216,19 +216,33 @@ def denormalize(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
     return tensor * std + mean  
 
 def process_with_srgan(filepath, gan1_path):
-    low_res = downsample_image(filepath, 4)
-    transform = transforms.Compose([
-        transforms.ToTensor(),  # Convert to tensor with range [0, 1]
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize
-    ])
-    low_res = transform(low_res).unsqueeze(0).to(device)
+    try:
+        # Clear memory before processing
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        
+        low_res = downsample_image(filepath, 4)
+        transform = transforms.Compose([
+            transforms.ToTensor(),  # Convert to tensor with range [0, 1]
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize
+        ])
+        low_res = transform(low_res).unsqueeze(0).to(device)
 
-    with torch.no_grad():
-        generated_high_res = netG(low_res)
+        with torch.no_grad():
+            generated_high_res = netG(low_res)
 
-    generated_high_res = denormalize(generated_high_res)[0].permute(1, 2, 0).cpu().numpy()
-    generated_high_res = Image.fromarray((generated_high_res * 255).astype('uint8'))
-    generated_high_res.save(gan1_path)
+        generated_high_res = denormalize(generated_high_res)[0].permute(1, 2, 0).cpu().numpy()
+        generated_high_res = Image.fromarray((generated_high_res * 255).astype('uint8'))
+        generated_high_res.save(gan1_path)
+        
+        # Clear memory after processing
+        del low_res, generated_high_res
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        
+    except Exception as e:
+        print(f"SRGAN processing error: {e}")
+        # Save a copy of original image if processing fails
+        original = Image.open(filepath)
+        original.save(gan1_path)
 
 
 # ---------------------------------------------------------------------------------------------------
